@@ -214,8 +214,7 @@
       transition: border-color .18s, background .18s;
     }
 
-    .peg-col.drag-over .cards-area { border-color: var(--gold);  background: var(--gold-dim); }
-    .peg-col.bad-drop  .cards-area { border-color: var(--danger); background: rgba(192,57,43,.1); }
+    /* drop highlights now managed by drop-ok / drop-bad via pointer events */
 
     .rod {
       width: 2px;
@@ -285,6 +284,43 @@
       80%      { transform: translateX(5px); }
     }
     .card.shaking { animation: shake .35s ease; }
+
+    .card.drag-ghost {
+      opacity: .35;
+      pointer-events: none;
+    }
+
+    #floating-card {
+      position: fixed;
+      pointer-events: none;
+      z-index: 200;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Josefin Mono', monospace;
+      font-weight: 600;
+      border: 2px solid var(--cc, #888);
+      color: var(--cc, #888);
+      background: #0f0f0f;
+      text-shadow: 0 0 10px var(--cc, #888);
+      box-shadow: 0 20px 50px rgba(0,0,0,.7), 0 0 28px var(--cc, #888);
+      transform: rotate(4deg) scale(1.08);
+      transition: box-shadow .1s;
+      will-change: left, top;
+    }
+    #floating-card::before {
+      content: ''; position: absolute; inset: 0;
+      border-radius: 4px;
+      background: var(--cc, #888); opacity: .12;
+    }
+
+    .peg-col.drop-ok  .cards-area { border-color: var(--gold);  background: var(--gold-dim); }
+    .peg-col.drop-bad .cards-area { border-color: var(--danger); background: rgba(192,57,43,.1); }
+
+    @keyframes snap-back {
+      0%   { transform: rotate(4deg) scale(1.08); }
+      60%  { transform: rotate(-2deg) scale(1.03); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
 
     #win {
       position: fixed; inset: 0;
@@ -403,7 +439,17 @@ document.addEventListener('DOMContentLoaded', function() {
   var timer    = null;
   var started  = false;
   var finished = false;
-  var dragFrom = null;
+
+  // pointer drag state
+  var pdFrom      = null;   // peg index being dragged from
+  var pdFloat     = null;   // the floating card element
+  var pdGhost     = null;   // the ghost (original card made transparent)
+  var pdOffX      = 0;      // offset from pointer to card top-left
+  var pdOffY      = 0;
+  var pdMoved     = false;  // true once pointer moved enough to be a drag
+  var pdStartX    = 0;
+  var pdStartY    = 0;
+  var DRAG_THRESH = 6;      // px before we commit to drag
 
   function buildPips() {
     var c = document.getElementById('pips');
@@ -435,7 +481,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function startGame() {
     finished = false; started = false;
-    moves = 0; secs = 0; sel = null; dragFrom = null;
+    moves = 0; secs = 0; sel = null;
+    pdFrom = null; pdMoved = false;
+    clearDropHighlights();
+    if (pdFloat) { pdFloat.remove(); pdFloat = null; }
+    if (pdGhost) { pdGhost.classList.remove('drag-ghost'); pdGhost = null; }
     clearInterval(timer); timer = null;
     pegs = [[], [], []];
     for (var i = diff; i >= 1; i--) pegs[0].push(i);
@@ -530,25 +580,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         col.addEventListener('click', function(e) { handleClick(pegIndex, e); });
 
-        col.addEventListener('dragover', function(e) {
-          e.preventDefault();
-          if (dragFrom !== null && dragFrom !== pegIndex) {
-            col.classList.toggle('drag-over', canMove(dragFrom, pegIndex));
-            col.classList.toggle('bad-drop',  !canMove(dragFrom, pegIndex));
-          }
-        });
-        col.addEventListener('dragleave', function() {
-          col.classList.remove('drag-over', 'bad-drop');
-        });
-        col.addEventListener('drop', function(e) {
-          e.preventDefault();
-          col.classList.remove('drag-over', 'bad-drop');
-          if (dragFrom !== null && dragFrom !== pegIndex) {
-            if (!doMove(dragFrom, pegIndex)) shake(dragFrom);
-          }
-          dragFrom = null;
-        });
-
         container.appendChild(col);
       })(p);
     }
@@ -582,17 +613,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (p === animPeg && actualIdx === pegs[p].length - 1) card.classList.add('placing');
 
         if (isTop && !finished) {
-          card.draggable = true;
           (function(fromPeg, cardEl) {
-            cardEl.addEventListener('dragstart', function(e) {
-              dragFrom = fromPeg;
-              sel      = fromPeg;
-              render();
-              e.dataTransfer.effectAllowed = 'move';
-            });
-            cardEl.addEventListener('dragend', function() {
-              dragFrom = null;
-              if (!finished) { sel = null; render(); }
+            cardEl.addEventListener('pointerdown', function(e) {
+              if (e.button !== undefined && e.button !== 0) return;
+              pdFrom   = fromPeg;
+              pdMoved  = false;
+              pdStartX = e.clientX;
+              pdStartY = e.clientY;
+              var rect = cardEl.getBoundingClientRect();
+              pdOffX   = e.clientX - rect.left;
+              pdOffY   = e.clientY - rect.top;
+              pdGhost  = cardEl;
+              e.preventDefault();
             });
           })(p, card);
         }
@@ -603,6 +635,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function handleClick(p, e) {
     if (finished) return;
+    if (pdMoved) return;  // fue un drag, no un click
     if (sel === null) {
       if (pegs[p].length > 0) {
         sel = p;
@@ -703,6 +736,129 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btn-again').addEventListener('click', function() { hideWin(); startGame(); });
   document.getElementById('btn-wm').addEventListener('click', function() {
     clearInterval(timer); hideWin(); showScreen('welcome');
+  });
+
+  // POINTER DRAG
+
+  function clearDropHighlights() {
+    for (var i = 0; i < 3; i++) {
+      var c = document.getElementById('col-' + i);
+      if (c) { c.classList.remove('drop-ok', 'drop-bad'); }
+    }
+  }
+
+  function pegUnderPointer(x, y) {
+    // hide float card so elementFromPoint can see through it
+    if (pdFloat) pdFloat.style.display = 'none';
+    var el = document.elementFromPoint(x, y);
+    if (pdFloat) pdFloat.style.display = '';
+    if (!el) return -1;
+    var col = el.closest('.peg-col');
+    if (!col) return -1;
+    return parseInt(col.id.replace('col-', ''), 10);
+  }
+
+  function createFloatingCard(fromPeg, x, y) {
+    var cs = cardSize();
+    var fs = cs < 60 ? 16 : cs < 70 ? 20 : 26;
+    var d  = topDisk(fromPeg);
+    var f  = document.createElement('div');
+    f.id   = 'floating-card';
+    f.style.setProperty('--cc', diskColor(d));
+    f.style.width    = cs + 'px';
+    f.style.height   = cs + 'px';
+    f.style.fontSize = fs + 'px';
+    f.style.left     = (x - pdOffX) + 'px';
+    f.style.top      = (y - pdOffY) + 'px';
+    f.textContent    = d;
+    document.body.appendChild(f);
+    return f;
+  }
+
+  document.addEventListener('pointermove', function(e) {
+    if (pdFrom === null || finished) return;
+
+    var dx = e.clientX - pdStartX;
+    var dy = e.clientY - pdStartY;
+
+    if (!pdMoved) {
+      if (Math.abs(dx) < DRAG_THRESH && Math.abs(dy) < DRAG_THRESH) return;
+      // commit to drag: cancel click selection, show float
+      pdMoved = true;
+      sel     = null;
+      if (pdGhost) pdGhost.classList.add('drag-ghost');
+      pdFloat = createFloatingCard(pdFrom, e.clientX, e.clientY);
+    }
+
+    // move floating card
+    pdFloat.style.left = (e.clientX - pdOffX) + 'px';
+    pdFloat.style.top  = (e.clientY - pdOffY) + 'px';
+
+    // highlight target column
+    clearDropHighlights();
+    var tgt = pegUnderPointer(e.clientX, e.clientY);
+    if (tgt >= 0 && tgt !== pdFrom) {
+      var col = document.getElementById('col-' + tgt);
+      col.classList.add(canMove(pdFrom, tgt) ? 'drop-ok' : 'drop-bad');
+    }
+  });
+
+  document.addEventListener('pointerup', function(e) {
+    if (pdFrom === null || finished) return;
+
+    clearDropHighlights();
+
+    if (!pdMoved) {
+      // it was a tap/click — let handleClick deal with it
+      pdFrom = null; pdGhost = null;
+      return;
+    }
+
+    // it was a drag — find target column
+    var tgt = pegUnderPointer(e.clientX, e.clientY);
+
+    // remove ghost tint and float
+    if (pdGhost) { pdGhost.classList.remove('drag-ghost'); pdGhost = null; }
+
+    if (tgt >= 0 && tgt !== pdFrom && canMove(pdFrom, tgt)) {
+      // valid drop: remove float, do the move
+      if (pdFloat) { pdFloat.remove(); pdFloat = null; }
+      doMove(pdFrom, tgt);
+    } else {
+      // invalid or dropped outside: animate card back and shake if needed
+      var invalidFrom = pdFrom;
+      if (tgt >= 0 && tgt !== pdFrom) shake(pdFrom);
+      if (pdFloat) {
+        // fly back to original position
+        var origArea = document.getElementById('area-' + invalidFrom);
+        var origCard = origArea.querySelector('.card.is-top');
+        var destRect = origCard ? origCard.getBoundingClientRect()
+                                : origArea.getBoundingClientRect();
+        pdFloat.style.transition = 'left .25s cubic-bezier(.4,0,.2,1), top .25s cubic-bezier(.4,0,.2,1), transform .25s, opacity .25s';
+        pdFloat.style.transform  = 'rotate(0deg) scale(1)';
+        pdFloat.style.left       = destRect.left + 'px';
+        pdFloat.style.top        = destRect.top  + 'px';
+        pdFloat.style.opacity    = '0';
+        var floatRef = pdFloat;
+        setTimeout(function() { floatRef.remove(); }, 280);
+        pdFloat = null;
+      }
+      if (tgt >= 0 && tgt !== pdFrom) {
+        setInstr('Movimiento no valido - no puedes poner un disco mayor sobre uno menor', false);
+        setTimeout(function() { setInstr(null); }, 1800);
+      }
+    }
+
+    pdFrom  = null;
+    pdMoved = false;
+  });
+
+  document.addEventListener('pointercancel', function() {
+    clearDropHighlights();
+    if (pdGhost) { pdGhost.classList.remove('drag-ghost'); pdGhost = null; }
+    if (pdFloat) { pdFloat.remove(); pdFloat = null; }
+    pdFrom  = null;
+    pdMoved = false;
   });
 
   window.addEventListener('resize', function() {
