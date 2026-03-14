@@ -3,26 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Torres de Hanói</title>
+  <title>Torres de Hanoi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Josefin+Mono:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:       #070707;
-      --surface:  #0f0f0f;
-      --border:   #222;
-      --gold:     #d4a843;
-      --gold-dim: rgba(212,168,67,.12);
-      --gold-glow:0 0 22px rgba(212,168,67,.45);
-      --text:     #e0d4b8;
-      --muted:    #5a5040;
-      --danger:   #c0392b;
-      --ok:       #2ecc71;
+      --bg:        #070707;
+      --surface:   #0f0f0f;
+      --border:    #222;
+      --gold:      #d4a843;
+      --gold-dim:  rgba(212,168,67,.12);
+      --gold-glow: 0 0 22px rgba(212,168,67,.45);
+      --text:      #e0d4b8;
+      --muted:     #5a5040;
+      --danger:    #c0392b;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html { scroll-behavior: smooth; }
 
     body {
       background: var(--bg);
@@ -32,7 +29,6 @@
       overflow-x: hidden;
     }
 
-    /* dot-grid texture */
     body::after {
       content: '';
       position: fixed; inset: 0;
@@ -42,9 +38,6 @@
       z-index: 0;
     }
 
-    /* ══════════════════════════════════
-       SCREENS
-    ══════════════════════════════════ */
     .screen {
       position: fixed; inset: 0;
       display: flex; flex-direction: column;
@@ -58,9 +51,6 @@
       transform: scale(.97);
     }
 
-    /* ══════════════════════════════════
-       WELCOME
-    ══════════════════════════════════ */
     #welcome {
       justify-content: center;
       gap: 44px; padding: 40px 24px;
@@ -86,17 +76,9 @@
       margin-top: 10px;
     }
 
-    /* difficulty selector */
     .diff-section { display: flex; flex-direction: column; align-items: center; gap: 18px; }
-
-    .diff-label {
-      font-size: 10px; letter-spacing: .35em;
-      text-transform: uppercase; color: var(--muted);
-    }
-
-    .diff-row {
-      display: flex; align-items: center; gap: 28px;
-    }
+    .diff-label { font-size: 10px; letter-spacing: .35em; text-transform: uppercase; color: var(--muted); }
+    .diff-row { display: flex; align-items: center; gap: 28px; }
 
     .icon-btn {
       width: 44px; height: 44px;
@@ -120,13 +102,10 @@
       min-width: 2ch; text-align: center;
     }
 
-    .pips {
-      display: flex; gap: 9px; align-items: center;
-    }
+    .pips { display: flex; gap: 9px; align-items: center; }
     .pip {
       width: 8px; height: 8px; border-radius: 50%;
-      background: var(--border);
-      cursor: pointer;
+      background: var(--border); cursor: pointer;
       transition: background .2s, transform .2s, box-shadow .2s;
     }
     .pip.on {
@@ -135,11 +114,8 @@
       box-shadow: 0 0 8px rgba(212,168,67,.55);
     }
 
-    .hint {
-      font-size: 11px; color: var(--muted); letter-spacing: .12em;
-    }
+    .hint { font-size: 11px; color: var(--muted); letter-spacing: .12em; }
 
-    /* start button */
     .cta {
       padding: 15px 52px;
       background: none;
@@ -163,13 +139,9 @@
     .cta:hover { color: var(--bg); box-shadow: var(--gold-glow); }
     .cta:hover::before { transform: scaleX(1); }
 
-    /* ══════════════════════════════════
-       GAME SCREEN
-    ══════════════════════════════════ */
     #game-screen {
       justify-content: flex-start;
       padding: 20px 12px 40px;
-      gap: 0;
     }
 
     .game-wrap {
@@ -179,7 +151,6 @@
       position: relative; z-index: 1;
     }
 
-    /* header */
     .g-header {
       display: flex; align-items: center;
       justify-content: space-between;
@@ -188,16 +159,12 @@
 
     .g-title {
       font-family: 'Cinzel Decorative', serif;
-      font-size: 15px; color: var(--gold);
-      letter-spacing: .04em;
+      font-size: 15px; color: var(--gold); letter-spacing: .04em;
     }
 
     .stats { display: flex; gap: 22px; }
     .stat { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-    .stat-lbl {
-      font-size: 8px; letter-spacing: .35em;
-      text-transform: uppercase; color: var(--muted);
-    }
+    .stat-lbl { font-size: 8px; letter-spacing: .35em; text-transform: uppercase; color: var(--muted); }
     .stat-val { font-size: 20px; font-weight: 600; line-height: 1; }
 
     .g-actions { display: flex; gap: 8px; }
@@ -214,7 +181,6 @@
     }
     .sm-btn:hover { border-color: var(--gold); color: var(--gold); }
 
-    /* instruction bar */
     .instr {
       font-size: 10px; color: var(--muted);
       letter-spacing: .12em; text-align: center;
@@ -222,7 +188,6 @@
     }
     .instr.active { color: var(--gold); }
 
-    /* ── pegs layout ── */
     .pegs {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -235,11 +200,9 @@
       align-items: center; cursor: pointer;
     }
 
-    /* cards area (the vertical slot) */
     .cards-area {
       position: relative;
       width: 100%;
-      /* height is set in JS based on difficulty */
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
@@ -251,10 +214,9 @@
       transition: border-color .18s, background .18s;
     }
 
-    .peg-col.drag-over  .cards-area { border-color: var(--gold);   background: var(--gold-dim); }
-    .peg-col.bad-drop   .cards-area { border-color: var(--danger);  background: rgba(192,57,43,.1); }
+    .peg-col.drag-over .cards-area { border-color: var(--gold);  background: var(--gold-dim); }
+    .peg-col.bad-drop  .cards-area { border-color: var(--danger); background: rgba(192,57,43,.1); }
 
-    /* rod shown above the stack */
     .rod {
       width: 2px;
       background: linear-gradient(to bottom, transparent, var(--border));
@@ -276,7 +238,6 @@
       padding: 7px 0 3px;
     }
 
-    /* ── cards ── */
     .card {
       --cc: #888;
       flex-shrink: 0;
@@ -325,9 +286,6 @@
     }
     .card.shaking { animation: shake .35s ease; }
 
-    /* ══════════════════════════════════
-       WIN OVERLAY
-    ══════════════════════════════════ */
     #win {
       position: fixed; inset: 0;
       background: rgba(7,7,7,.93);
@@ -354,19 +312,10 @@
     .win-stats { display: flex; gap: 44px; text-align: center; }
     .win-sl { font-size: 9px; letter-spacing: .32em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
     .win-sv { font-size: 38px; font-weight: 600; }
-
     .win-btns { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
 
-    /* confetti */
-    .cf {
-      position: fixed;
-      pointer-events: none; z-index: 99;
-      border-radius: 1px;
-    }
+    .cf { position: fixed; pointer-events: none; z-index: 99; border-radius: 1px; }
 
-    /* ══════════════════════════════════
-       RESPONSIVE
-    ══════════════════════════════════ */
     @media (max-width: 580px) {
       .win-stats { gap: 24px; }
       .win-sv { font-size: 28px; }
@@ -375,33 +324,28 @@
 </head>
 <body>
 
-<!-- ═══════════ WELCOME ═══════════ -->
 <div class="screen" id="welcome">
   <div class="logo">
-    Torres de Hanói
+    Torres de Hanoi
     <small>el puzzle eterno</small>
   </div>
-
   <div class="diff-section">
-    <div class="diff-label">Número de discos</div>
+    <div class="diff-label">Numero de discos</div>
     <div class="diff-row">
-      <button class="icon-btn" id="btn-less">−</button>
+      <button class="icon-btn" id="btn-less">-</button>
       <div class="diff-number" id="dn">3</div>
       <button class="icon-btn" id="btn-more">+</button>
     </div>
     <div class="pips" id="pips"></div>
-    <div class="hint" id="hint">Mínimo de movimientos: 7</div>
+    <div class="hint" id="hint">Minimo de movimientos: 7</div>
   </div>
-
   <button class="cta" id="btn-start">Comenzar</button>
 </div>
 
-<!-- ═══════════ GAME ═══════════ -->
 <div class="screen hidden" id="game-screen">
   <div class="game-wrap">
-
     <div class="g-header">
-      <div class="g-title">Torres de Hanói</div>
+      <div class="g-title">Torres de Hanoi</div>
       <div class="stats">
         <div class="stat">
           <div class="stat-lbl">Movimientos</div>
@@ -418,20 +362,16 @@
       </div>
       <div class="g-actions">
         <button class="sm-btn" id="btn-restart">Reiniciar</button>
-        <button class="sm-btn" id="btn-menu">Menú</button>
+        <button class="sm-btn" id="btn-menu">Menu</button>
       </div>
     </div>
-
     <div class="instr" id="instr">Haz clic en la carta superior para seleccionarla, luego en la columna destino</div>
-
     <div class="pegs" id="pegs"></div>
-
   </div>
 </div>
 
-<!-- ═══════════ WIN ═══════════ -->
 <div id="win">
-  <div class="win-title">¡Victoria!</div>
+  <div class="win-title">Victoria!</div>
   <div class="win-stats">
     <div>
       <div class="win-sl">Movimientos</div>
@@ -442,7 +382,7 @@
       <div class="win-sv" id="w-time">0:00</div>
     </div>
     <div>
-      <div class="win-sl">Mínimo posible</div>
+      <div class="win-sl">Minimo posible</div>
       <div class="win-sv" id="w-min">7</div>
     </div>
   </div>
@@ -453,344 +393,325 @@
 </div>
 
 <script>
-// ─── STATE ────────────────────────────────────────────────────────
-let pegs     = [[],[],[]];
-let diff     = 3;
-let sel      = null;   // selected peg index or null
-let moves    = 0;
-let secs     = 0;
-let timer    = null;
-let started  = false;
-let finished = false;
-let dragFrom = null;
+document.addEventListener('DOMContentLoaded', function() {
 
-// ─── WELCOME ──────────────────────────────────────────────────────
-function buildPips() {
-  const c = document.getElementById('pips');
-  c.innerHTML = '';
-  for (let i = 3; i <= 10; i++) {
-    const p = document.createElement('div');
-    p.className = 'pip' + (i === diff ? ' on' : '');
-    p.addEventListener('click', () => setDiff(i));
-    c.appendChild(p);
-  }
-}
+  var pegs     = [[], [], []];
+  var diff     = 3;
+  var sel      = null;
+  var moves    = 0;
+  var secs     = 0;
+  var timer    = null;
+  var started  = false;
+  var finished = false;
+  var dragFrom = null;
 
-function setDiff(n) {
-  diff = Math.max(3, Math.min(10, n));
-  document.getElementById('dn').textContent = diff;
-  document.getElementById('hint').textContent =
-    `Mínimo de movimientos: ${(1 << diff) - 1}`;
-  document.getElementById('btn-less').disabled = diff === 3;
-  document.getElementById('btn-more').disabled = diff === 10;
-  buildPips();
-}
-
-document.getElementById('btn-less').addEventListener('click', () => setDiff(diff - 1));
-document.getElementById('btn-more').addEventListener('click', () => setDiff(diff + 1));
-document.getElementById('btn-start').addEventListener('click', startGame);
-setDiff(3);
-
-// ─── GAME INIT ────────────────────────────────────────────────────
-function startGame() {
-  finished = false; started = false;
-  moves = 0; secs = 0; sel = null; dragFrom = null;
-  clearInterval(timer); timer = null;
-
-  pegs = [[], [], []];
-  for (let i = diff; i >= 1; i--) pegs[0].push(i);
-
-  document.getElementById('s-diff').textContent = diff;
-  updateStats();
-  showScreen('game-screen');
-  buildLayout();
-  render();
-}
-
-// ─── GAME LOGIC ───────────────────────────────────────────────────
-function top(p) { return pegs[p].length ? pegs[p][pegs[p].length - 1] : null; }
-
-function canMove(from, to) {
-  if (from === to) return false;
-  const d = top(from);
-  if (d === null) return false;
-  const t = top(to);
-  return t === null || t > d;
-}
-
-function doMove(from, to) {
-  if (!canMove(from, to)) return false;
-  if (!started) {
-    started = true;
-    timer = setInterval(() => { secs++; updateStats(); }, 1000);
-  }
-  const d = pegs[from].pop();
-  pegs[to].push(d);
-  moves++;
-  sel = null;
-  updateStats();
-  render(to);
-  if (pegs[2].length === diff) setTimeout(showWin, 380);
-  return true;
-}
-
-// ─── DISK COLOR ───────────────────────────────────────────────────
-function diskColor(d) {
-  // disk 1 = gold (48°), disk n = violet (268°)
-  const t = diff > 1 ? (d - 1) / (diff - 1) : 0;
-  const h = Math.round(48 + t * 220);
-  const s = Math.round(85 - t * 18);
-  const l = Math.round(63 - t * 24);
-  return `hsl(${h},${s}%,${l}%)`;
-}
-
-// ─── CARD SIZE (responsive) ───────────────────────────────────────
-function cardSize() {
-  const vw = window.innerWidth;
-  if (vw < 380) return 48;
-  if (vw < 520) return 58;
-  if (vw < 700) return 68;
-  return 80;
-}
-
-// ─── BUILD STATIC LAYOUT ─────────────────────────────────────────
-function buildLayout() {
-  const container = document.getElementById('pegs');
-  container.innerHTML = '';
-  const cs = cardSize();
-  const gap = 5;
-  const areaH = diff * (cs + gap) + 16; // extra breathing room
-
-  ['Origen','Auxiliar','Destino'].forEach((lbl, p) => {
-    const col = document.createElement('div');
-    col.className = 'peg-col';
-    col.dataset.peg = p;
-    col.id = `col-${p}`;
-
-    const area = document.createElement('div');
-    area.className = 'cards-area';
-    area.id = `area-${p}`;
-    area.style.height = areaH + 'px';
-    area.style.gap = gap + 'px';
-
-    const rod = document.createElement('div');
-    rod.className = 'rod';
-    rod.style.height = '100%';
-    area.appendChild(rod);
-
-    const base = document.createElement('div');
-    base.className = 'peg-base';
-
-    const label = document.createElement('div');
-    label.className = 'peg-lbl';
-    label.textContent = lbl;
-
-    col.appendChild(area);
-    col.appendChild(base);
-    col.appendChild(label);
-
-    // ── click handler ──
-    col.addEventListener('click', e => handleClick(p, e));
-
-    // ── drag & drop ──
-    col.addEventListener('dragover', e => {
-      e.preventDefault();
-      if (dragFrom !== null && dragFrom !== p) {
-        col.classList.toggle('drag-over', canMove(dragFrom, p));
-        col.classList.toggle('bad-drop',  !canMove(dragFrom, p));
-      }
-    });
-    col.addEventListener('dragleave', () => {
-      col.classList.remove('drag-over','bad-drop');
-    });
-    col.addEventListener('drop', e => {
-      e.preventDefault();
-      col.classList.remove('drag-over','bad-drop');
-      if (dragFrom !== null && dragFrom !== p) {
-        if (!doMove(dragFrom, p)) shake(dragFrom);
-      }
-      dragFrom = null;
-    });
-
-    container.appendChild(col);
-  });
-}
-
-// ─── RENDER ───────────────────────────────────────────────────────
-function render(animPeg) {
-  const cs = cardSize();
-  const fs = cs < 60 ? 16 : cs < 70 ? 20 : 26;
-
-  for (let p = 0; p < 3; p++) {
-    const area = document.getElementById(`area-${p}`);
-    const rod = area.querySelector('.rod');
-    area.innerHTML = '';
-    area.appendChild(rod);
-
-    // render bottom-first (pegs[p][0] = largest = visual bottom)
-    // We display in reverse so largest appears at bottom of flex column
-    [...pegs[p]].reverse().forEach((d, vi) => {
-      const isTop = vi === 0;
-      const actualIdx = pegs[p].length - 1 - vi;
-
-      const card = document.createElement('div');
-      card.className = 'card' + (isTop ? ' is-top' : '');
-      card.style.setProperty('--cc', diskColor(d));
-      card.style.width  = cs + 'px';
-      card.style.height = cs + 'px';
-      card.style.fontSize = fs + 'px';
-
-      if (isTop && sel === p) card.classList.add('selected');
-      if (p === animPeg && actualIdx === pegs[p].length - 1) card.classList.add('placing');
-
-      card.textContent = d;
-
-      if (isTop && !finished) {
-        card.draggable = true;
-        card.addEventListener('dragstart', e => {
-          dragFrom = p;
-          sel = p;
-          render();
-          e.dataTransfer.effectAllowed = 'move';
-          // ghost image
-          const ghost = card.cloneNode(true);
-          ghost.style.position = 'absolute';
-          ghost.style.top = '-9999px';
-          document.body.appendChild(ghost);
-          e.dataTransfer.setDragImage(ghost, cs/2, cs/2);
-          requestAnimationFrame(() => ghost.remove());
-        });
-        card.addEventListener('dragend', () => {
-          dragFrom = null;
-          if (!finished) { sel = null; render(); }
-        });
-      }
-      area.appendChild(card);
-    });
-  }
-}
-
-// ─── CLICK HANDLER ───────────────────────────────────────────────
-function handleClick(p, e) {
-  if (finished) return;
-
-  if (sel === null) {
-    // select this peg's top card
-    if (pegs[p].length > 0) {
-      sel = p;
-      setInstr(`Disco ${top(p)} seleccionado — haz clic en la columna destino`, true);
-      render();
-    }
-  } else if (sel === p) {
-    // deselect
-    sel = null;
-    setInstr(null);
-    render();
-  } else {
-    const from = sel;
-    if (doMove(from, p)) {
-      setInstr(null);
-    } else {
-      // invalid
-      shake(from);
-      // keep selected so user can pick another destination
-      setInstr('Movimiento no válido — no puedes poner un disco mayor sobre uno menor', false);
-      setTimeout(() => setInstr(null), 1800);
+  function buildPips() {
+    var c = document.getElementById('pips');
+    c.innerHTML = '';
+    for (var i = 3; i <= 10; i++) {
+      var p = document.createElement('div');
+      p.className = 'pip' + (i === diff ? ' on' : '');
+      (function(n) {
+        p.addEventListener('click', function() { setDiff(n); });
+      })(i);
+      c.appendChild(p);
     }
   }
-}
 
-function shake(p) {
-  const area = document.getElementById(`area-${p}`);
-  const topCard = area.querySelector('.card.is-top');
-  if (!topCard) return;
-  topCard.classList.add('shaking');
-  setTimeout(() => topCard.classList.remove('shaking'), 400);
-}
-
-function setInstr(msg, active) {
-  const el = document.getElementById('instr');
-  if (msg) {
-    el.textContent = msg;
-    el.classList.toggle('active', !!active);
-  } else {
-    el.textContent = 'Haz clic en la carta superior para seleccionarla, luego en la columna destino';
-    el.classList.remove('active');
+  function setDiff(n) {
+    diff = Math.max(3, Math.min(10, n));
+    document.getElementById('dn').textContent = diff;
+    document.getElementById('hint').textContent =
+      'Minimo de movimientos: ' + (Math.pow(2, diff) - 1);
+    document.getElementById('btn-less').disabled = (diff === 3);
+    document.getElementById('btn-more').disabled = (diff === 10);
+    buildPips();
   }
-}
 
-// ─── STATS ────────────────────────────────────────────────────────
-function updateStats() {
-  document.getElementById('s-moves').textContent = moves;
-  document.getElementById('s-time').textContent  = fmt(secs);
-}
+  document.getElementById('btn-less').addEventListener('click', function() { setDiff(diff - 1); });
+  document.getElementById('btn-more').addEventListener('click', function() { setDiff(diff + 1); });
+  document.getElementById('btn-start').addEventListener('click', startGame);
+  setDiff(3);
 
-function fmt(s) {
-  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
-}
-
-// ─── WIN ──────────────────────────────────────────────────────────
-function showWin() {
-  clearInterval(timer);
-  finished = true;
-  document.getElementById('w-moves').textContent = moves;
-  document.getElementById('w-time').textContent  = fmt(secs);
-  document.getElementById('w-min').textContent   = (1 << diff) - 1;
-  document.getElementById('win').classList.add('on');
-  confetti();
-}
-
-function confetti() {
-  const cols = ['#d4a843','#e0d4b8','#e74c3c','#2ecc71','#3498db','#9b59b6','#f39c12'];
-  for (let i = 0; i < 70; i++) {
-    setTimeout(() => {
-      const p = document.createElement('div');
-      p.className = 'cf';
-      const sz = 5 + Math.random() * 9;
-      p.style.cssText = `
-        left:${Math.random()*100}vw; top:-12px;
-        width:${sz}px; height:${sz}px;
-        background:${cols[Math.floor(Math.random()*cols.length)]};
-        transform:rotate(${Math.random()*360}deg);
-      `;
-      document.body.appendChild(p);
-      const drift = (Math.random()-.5)*220;
-      const dur   = 2200 + Math.random()*2000;
-      p.animate([
-        { transform:`translateY(0) translateX(0) rotate(0deg)`, opacity:1 },
-        { transform:`translateY(108vh) translateX(${drift}px) rotate(${720+Math.random()*360}deg)`, opacity:0 }
-      ], { duration:dur, easing:'cubic-bezier(.25,.46,.45,.94)', fill:'forwards' })
-      .finished.then(() => p.remove());
-    }, i * 55);
-  }
-}
-
-// ─── NAVIGATION ───────────────────────────────────────────────────
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => {
-    s.classList.toggle('hidden', s.id !== id);
-  });
-}
-
-function hideWin() {
-  document.getElementById('win').classList.remove('on');
-}
-
-document.getElementById('btn-restart').addEventListener('click', () => { hideWin(); startGame(); });
-document.getElementById('btn-menu').addEventListener('click', () => {
-  clearInterval(timer); hideWin(); showScreen('welcome');
-});
-document.getElementById('btn-again').addEventListener('click', () => { hideWin(); startGame(); });
-document.getElementById('btn-wm').addEventListener('click', () => {
-  clearInterval(timer); hideWin(); showScreen('welcome');
-});
-
-// ─── RESIZE ───────────────────────────────────────────────────────
-window.addEventListener('resize', () => {
-  if (!document.getElementById('game-screen').classList.contains('hidden')) {
+  function startGame() {
+    finished = false; started = false;
+    moves = 0; secs = 0; sel = null; dragFrom = null;
+    clearInterval(timer); timer = null;
+    pegs = [[], [], []];
+    for (var i = diff; i >= 1; i--) pegs[0].push(i);
+    document.getElementById('s-diff').textContent = diff;
+    updateStats();
+    showScreen('game-screen');
     buildLayout();
     render();
   }
+
+  function topDisk(p) {
+    return pegs[p].length ? pegs[p][pegs[p].length - 1] : null;
+  }
+
+  function canMove(from, to) {
+    if (from === to) return false;
+    var d = topDisk(from);
+    if (d === null) return false;
+    var t = topDisk(to);
+    return t === null || t > d;
+  }
+
+  function doMove(from, to) {
+    if (!canMove(from, to)) return false;
+    if (!started) {
+      started = true;
+      timer = setInterval(function() { secs++; updateStats(); }, 1000);
+    }
+    var d = pegs[from].pop();
+    pegs[to].push(d);
+    moves++;
+    sel = null;
+    updateStats();
+    render(to);
+    if (pegs[2].length === diff) {
+      setTimeout(showWin, 380);
+    }
+    return true;
+  }
+
+  function diskColor(d) {
+    var t = diff > 1 ? (d - 1) / (diff - 1) : 0;
+    var h = Math.round(48 + t * 220);
+    var s = Math.round(85 - t * 18);
+    var l = Math.round(63 - t * 24);
+    return 'hsl(' + h + ',' + s + '%,' + l + '%)';
+  }
+
+  function cardSize() {
+    var vw = window.innerWidth;
+    if (vw < 380) return 48;
+    if (vw < 520) return 58;
+    if (vw < 700) return 68;
+    return 80;
+  }
+
+  function buildLayout() {
+    var container = document.getElementById('pegs');
+    container.innerHTML = '';
+    var cs   = cardSize();
+    var gap  = 5;
+    var areaH = diff * (cs + gap) + 16;
+    var labels = ['Origen', 'Auxiliar', 'Destino'];
+
+    for (var p = 0; p < 3; p++) {
+      (function(pegIndex) {
+        var col = document.createElement('div');
+        col.className = 'peg-col';
+        col.id = 'col-' + pegIndex;
+
+        var area = document.createElement('div');
+        area.className = 'cards-area';
+        area.id = 'area-' + pegIndex;
+        area.style.height = areaH + 'px';
+        area.style.gap    = gap + 'px';
+
+        var rod = document.createElement('div');
+        rod.className    = 'rod';
+        rod.style.height = '100%';
+        area.appendChild(rod);
+
+        var base = document.createElement('div');
+        base.className = 'peg-base';
+
+        var label = document.createElement('div');
+        label.className  = 'peg-lbl';
+        label.textContent = labels[pegIndex];
+
+        col.appendChild(area);
+        col.appendChild(base);
+        col.appendChild(label);
+
+        col.addEventListener('click', function(e) { handleClick(pegIndex, e); });
+
+        col.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          if (dragFrom !== null && dragFrom !== pegIndex) {
+            col.classList.toggle('drag-over', canMove(dragFrom, pegIndex));
+            col.classList.toggle('bad-drop',  !canMove(dragFrom, pegIndex));
+          }
+        });
+        col.addEventListener('dragleave', function() {
+          col.classList.remove('drag-over', 'bad-drop');
+        });
+        col.addEventListener('drop', function(e) {
+          e.preventDefault();
+          col.classList.remove('drag-over', 'bad-drop');
+          if (dragFrom !== null && dragFrom !== pegIndex) {
+            if (!doMove(dragFrom, pegIndex)) shake(dragFrom);
+          }
+          dragFrom = null;
+        });
+
+        container.appendChild(col);
+      })(p);
+    }
+  }
+
+  function render(animPeg) {
+    var cs = cardSize();
+    var fs = cs < 60 ? 16 : cs < 70 ? 20 : 26;
+
+    for (var p = 0; p < 3; p++) {
+      var area = document.getElementById('area-' + p);
+      var rod  = area.querySelector('.rod');
+      area.innerHTML = '';
+      area.appendChild(rod);
+
+      var stack = pegs[p].slice().reverse();
+      for (var vi = 0; vi < stack.length; vi++) {
+        var d      = stack[vi];
+        var isTop  = (vi === 0);
+        var actualIdx = pegs[p].length - 1 - vi;
+
+        var card = document.createElement('div');
+        card.className = 'card' + (isTop ? ' is-top' : '');
+        card.style.setProperty('--cc', diskColor(d));
+        card.style.width    = cs + 'px';
+        card.style.height   = cs + 'px';
+        card.style.fontSize = fs + 'px';
+        card.textContent    = d;
+
+        if (isTop && sel === p)            card.classList.add('selected');
+        if (p === animPeg && actualIdx === pegs[p].length - 1) card.classList.add('placing');
+
+        if (isTop && !finished) {
+          card.draggable = true;
+          (function(fromPeg, cardEl) {
+            cardEl.addEventListener('dragstart', function(e) {
+              dragFrom = fromPeg;
+              sel      = fromPeg;
+              render();
+              e.dataTransfer.effectAllowed = 'move';
+            });
+            cardEl.addEventListener('dragend', function() {
+              dragFrom = null;
+              if (!finished) { sel = null; render(); }
+            });
+          })(p, card);
+        }
+        area.appendChild(card);
+      }
+    }
+  }
+
+  function handleClick(p, e) {
+    if (finished) return;
+    if (sel === null) {
+      if (pegs[p].length > 0) {
+        sel = p;
+        setInstr('Disco ' + topDisk(p) + ' seleccionado - haz clic en la columna destino', true);
+        render();
+      }
+    } else if (sel === p) {
+      sel = null;
+      setInstr(null);
+      render();
+    } else {
+      var from = sel;
+      if (doMove(from, p)) {
+        setInstr(null);
+      } else {
+        shake(from);
+        setInstr('Movimiento no valido - no puedes poner un disco mayor sobre uno menor', false);
+        setTimeout(function() { setInstr(null); }, 1800);
+      }
+    }
+  }
+
+  function shake(p) {
+    var area    = document.getElementById('area-' + p);
+    var topCard = area.querySelector('.card.is-top');
+    if (!topCard) return;
+    topCard.classList.add('shaking');
+    setTimeout(function() { topCard.classList.remove('shaking'); }, 400);
+  }
+
+  function setInstr(msg, active) {
+    var el = document.getElementById('instr');
+    if (msg) {
+      el.textContent = msg;
+      el.classList.toggle('active', !!active);
+    } else {
+      el.textContent = 'Haz clic en la carta superior para seleccionarla, luego en la columna destino';
+      el.classList.remove('active');
+    }
+  }
+
+  function updateStats() {
+    document.getElementById('s-moves').textContent = moves;
+    document.getElementById('s-time').textContent  = fmt(secs);
+  }
+
+  function fmt(s) {
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  function showWin() {
+    clearInterval(timer);
+    finished = true;
+    document.getElementById('w-moves').textContent = moves;
+    document.getElementById('w-time').textContent  = fmt(secs);
+    document.getElementById('w-min').textContent   = Math.pow(2, diff) - 1;
+    document.getElementById('win').classList.add('on');
+    confetti();
+  }
+
+  function confetti() {
+    var cols = ['#d4a843','#e0d4b8','#e74c3c','#2ecc71','#3498db','#9b59b6','#f39c12'];
+    for (var i = 0; i < 70; i++) {
+      (function(idx) {
+        setTimeout(function() {
+          var el  = document.createElement('div');
+          el.className = 'cf';
+          var sz  = 5 + Math.random() * 9;
+          var col = cols[Math.floor(Math.random() * cols.length)];
+          el.style.cssText = 'left:' + (Math.random() * 100) + 'vw;top:-12px;width:' + sz + 'px;height:' + sz + 'px;background:' + col + ';';
+          document.body.appendChild(el);
+          var drift = (Math.random() - 0.5) * 220;
+          var dur   = 2200 + Math.random() * 2000;
+          el.animate([
+            { transform: 'translateY(0) translateX(0) rotate(0deg)', opacity: 1 },
+            { transform: 'translateY(108vh) translateX(' + drift + 'px) rotate(720deg)', opacity: 0 }
+          ], { duration: dur, easing: 'ease-in', fill: 'forwards' })
+          .finished.then(function() { el.remove(); });
+        }, idx * 55);
+      })(i);
+    }
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(function(s) {
+      s.classList.toggle('hidden', s.id !== id);
+    });
+  }
+
+  function hideWin() {
+    document.getElementById('win').classList.remove('on');
+  }
+
+  document.getElementById('btn-restart').addEventListener('click', function() { hideWin(); startGame(); });
+  document.getElementById('btn-menu').addEventListener('click', function() {
+    clearInterval(timer); hideWin(); showScreen('welcome');
+  });
+  document.getElementById('btn-again').addEventListener('click', function() { hideWin(); startGame(); });
+  document.getElementById('btn-wm').addEventListener('click', function() {
+    clearInterval(timer); hideWin(); showScreen('welcome');
+  });
+
+  window.addEventListener('resize', function() {
+    if (!document.getElementById('game-screen').classList.contains('hidden')) {
+      buildLayout();
+      render();
+    }
+  });
+
 });
 </script>
 </body>
