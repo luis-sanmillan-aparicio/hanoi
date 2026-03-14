@@ -21,12 +21,22 @@
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html, body {
+      overscroll-behavior: none;
+      overflow: hidden;
+      height: 100%;
+    }
+
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'Josefin Mono', monospace;
       min-height: 100vh;
       overflow-x: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: pan-y;
+      -webkit-touch-callout: none;
     }
 
     body::after {
@@ -193,11 +203,15 @@
       grid-template-columns: 1fr 1fr 1fr;
       gap: 10px;
       align-items: end;
+      touch-action: none;
     }
 
     .peg-col {
       display: flex; flex-direction: column;
       align-items: center; cursor: pointer;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .cards-area {
@@ -243,7 +257,9 @@
       border-radius: 6px;
       display: flex; align-items: center; justify-content: center;
       font-weight: 600;
+      -webkit-user-select: none;
       user-select: none;
+      touch-action: none;
       position: relative;
       background: var(--surface);
       border: 2px solid var(--cc);
@@ -306,6 +322,10 @@
       transform: rotate(4deg) scale(1.08);
       transition: box-shadow .1s;
       will-change: left, top;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: none;
+      -webkit-touch-callout: none;
     }
     #floating-card::before {
       content: ''; position: absolute; inset: 0;
@@ -549,6 +569,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var gap  = 5;
     var areaH = diff * (cs + gap) + 16;
     var labels = ['Origen', 'Auxiliar', 'Destino'];
+
+    // bloquear touchstart en toda la zona de juego (evita selección de texto en iOS)
+    container.addEventListener('touchstart', function(e) { e.preventDefault(); }, { passive: false });
 
     for (var p = 0; p < 3; p++) {
       (function(pegIndex) {
