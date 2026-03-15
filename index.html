@@ -346,21 +346,20 @@
     }
     .card.mark-dim::before { display: none; }
 
-    .card.mark-arrow {
+    .card.mark-dim.mark-arrow {
       opacity: 1 !important;
       filter: none !important;
-      border-color: var(--gold) !important;
-      box-shadow: 0 0 14px rgba(212,168,67,.3) !important;
-      gap: 4px;
+      background: var(--surface);
+      border-color: #333 !important;
+      box-shadow: none !important;
     }
-    .card.mark-arrow .arr {
-      color: var(--gold);
-      text-shadow: 0 0 10px var(--gold);
-      line-height: 1;
-    }
-    .card.mark-arrow .arr-num {
-      color: #2a2a2a;
+    .card.mark-dim.mark-arrow .arr-num {
+      color: #2b2b2b;
       text-shadow: none;
+    }
+    .card.mark-dim.mark-arrow .arr {
+      color: var(--gold);
+      text-shadow: 0 0 8px var(--gold);
     }
 
     #win {
@@ -674,12 +673,11 @@ document.addEventListener('DOMContentLoaded', function() {
           card.classList.add('mark-dim');
           card.textContent = d;
         } else if (mk === 'arrow') {
-          card.classList.add('mark-arrow');
-          var aL  = document.createElement('span'); aL.className  = 'arr'; aL.textContent = '\u25B2';
+          card.classList.add('mark-dim', 'mark-arrow');
           var num = document.createElement('span'); num.className = 'arr-num'; num.textContent = d;
-          var aR  = document.createElement('span'); aR.className  = 'arr'; aR.textContent = '\u25B2';
-          card.appendChild(aL); card.appendChild(num); card.appendChild(aR);
-          card.style.fontSize = Math.round(fs * 0.7) + 'px';
+          var aR  = document.createElement('span'); aR.className  = 'arr';     aR.textContent = '\u25B2';
+          card.appendChild(num); card.appendChild(aR);
+          card.style.fontSize = Math.round(fs * 0.75) + 'px';
         } else {
           card.textContent = d;
         }
@@ -688,13 +686,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (p === animPeg && actualIdx === pegs[p].length - 1) card.classList.add('placing');
 
         if (!finished) {
-          (function(fromPeg, diskVal, cardEl) {
+          (function(fromPeg, diskVal, topCard, cardEl) {
             cardEl.addEventListener('pointerdown', function(e) {
               if (e.button !== undefined && e.button !== 0) return;
               e.preventDefault();
               pdDisk = diskVal;
 
-              if (isTop) {
+              if (topCard) {
                 pdFrom   = fromPeg;
                 pdMoved  = false;
                 pdStartX = e.clientX;
@@ -705,7 +703,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 pdGhost  = cardEl;
               }
             });
-          })(p, d, card);
+          })(p, d, isTop, card);
         }
         area.appendChild(card);
       }
@@ -938,7 +936,7 @@ document.addEventListener('DOMContentLoaded', function() {
     pdMoved = false;
   });
 
-  // CONTADOR DE TOQUES
+  // CONTADOR DE TOQUES - ciclo: normal -> dim -> arrow -> normal
 
   function registerTap(disk) {
     var now = Date.now();
@@ -947,20 +945,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     tapTimes[disk]  = now;
     tapCounts[disk] = (tapCounts[disk] || 0) + 1;
-    var cnt = tapCounts[disk];
-    var mk  = marks[disk];
 
-    if (mk) {
-      // ya marcada: 5 toques seguidos -> volver a normal
-      if (cnt >= 5) {
-        marks[disk]     = null;
-        tapCounts[disk] = 0;
-        render();
-      }
-    } else {
-      // sin marca: 5 -> dim, 10 -> arrow
-      if (cnt === 5)       { marks[disk] = 'dim';   render(); }
-      else if (cnt >= 10)  { marks[disk] = 'arrow'; tapCounts[disk] = 0; render(); }
+    if (tapCounts[disk] >= 5) {
+      tapCounts[disk] = 0;
+      var mk = marks[disk];
+      if (!mk)           marks[disk] = 'dim';
+      else if (mk === 'dim')   marks[disk] = 'arrow';
+      else               marks[disk] = null;
+      render();
     }
   }
 
