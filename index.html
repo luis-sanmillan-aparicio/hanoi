@@ -345,14 +345,29 @@
       transition: opacity .4s, filter .4s;
     }
     .card.mark-dim::before { display: none; }
+    .card.mark-dim.mark-arrow {
+      opacity: 1;
+      filter: none;
+    }
 
     .card.mark-arrow {
       border-color: var(--gold) !important;
-      color: var(--gold) !important;
-      text-shadow: 0 0 12px var(--gold) !important;
       box-shadow: 0 0 18px rgba(212,168,67,.35) !important;
     }
-    .card.mark-arrow::before { background: var(--gold) !important; opacity: .08; }
+    .card.mark-arrow::before { background: var(--gold) !important; opacity: .06; }
+
+    .card .arrow-icon {
+      color: var(--gold);
+      text-shadow: 0 0 10px var(--gold);
+      opacity: 1;
+      flex-shrink: 0;
+    }
+    .card .arrow-num {
+      color: #333;
+      text-shadow: none;
+      opacity: .35;
+      flex-shrink: 0;
+    }
 
     /* anillo de progreso de pulsación larga */
     .card .lp-ring {
@@ -679,8 +694,22 @@ document.addEventListener('DOMContentLoaded', function() {
           card.classList.add('mark-dim');
           card.textContent = d;
         } else if (mk === 'arrow') {
-          card.classList.add('mark-arrow');
-          card.textContent = '\u25B2 ' + d + ' \u25B2';
+          card.classList.add('mark-dim', 'mark-arrow');
+          // flecha izq
+          var aL = document.createElement('span');
+          aL.className = 'arrow-icon';
+          aL.textContent = '\u25B2';
+          // numero apagado
+          var num = document.createElement('span');
+          num.className = 'arrow-num';
+          num.textContent = d;
+          // flecha der
+          var aR = document.createElement('span');
+          aR.className = 'arrow-icon';
+          aR.textContent = '\u25B2';
+          card.appendChild(aL);
+          card.appendChild(num);
+          card.appendChild(aR);
           card.style.fontSize = Math.round(fs * 0.72) + 'px';
         } else {
           card.textContent = d;
