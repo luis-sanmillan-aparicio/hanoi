@@ -336,10 +336,31 @@
     .peg-col.drop-ok  .cards-area { border-color: var(--gold);  background: var(--gold-dim); }
     .peg-col.drop-bad .cards-area { border-color: var(--danger); background: rgba(192,57,43,.1); }
 
-    @keyframes snap-back {
-      0%   { transform: rotate(4deg) scale(1.08); }
-      60%  { transform: rotate(-2deg) scale(1.03); }
-      100% { transform: rotate(0deg) scale(1); }
+    .card.mark-dim {
+      opacity: .18;
+      filter: grayscale(1);
+      border-color: #333 !important;
+      color: #333 !important;
+      text-shadow: none !important;
+      transition: opacity .35s, filter .35s;
+    }
+    .card.mark-dim::before { display: none; }
+
+    .card.mark-arrow {
+      opacity: 1 !important;
+      filter: none !important;
+      border-color: var(--gold) !important;
+      box-shadow: 0 0 14px rgba(212,168,67,.3) !important;
+      gap: 4px;
+    }
+    .card.mark-arrow .arr {
+      color: var(--gold);
+      text-shadow: 0 0 10px var(--gold);
+      line-height: 1;
+    }
+    .card.mark-arrow .arr-num {
+      color: #2a2a2a;
+      text-shadow: none;
     }
 
     #win {
@@ -458,16 +479,24 @@ document.addEventListener('DOMContentLoaded', function() {
   var started  = false;
   var finished = false;
 
+  // marcas visuales: clave = valor del disco, valor = 'dim' | 'arrow' | null
+  var marks = {};
+
+  // contadores de toques por disco
+  var tapCounts = {};
+  var tapTimes  = {};
+
   // pointer drag state
-  var pdFrom      = null;   // peg index being dragged from
-  var pdFloat     = null;   // the floating card element
-  var pdGhost     = null;   // the ghost (original card made transparent)
-  var pdOffX      = 0;      // offset from pointer to card top-left
+  var pdFrom      = null;
+  var pdDisk      = null;   // valor del disco que se esta tocando
+  var pdFloat     = null;
+  var pdGhost     = null;
+  var pdOffX      = 0;
   var pdOffY      = 0;
-  var pdMoved     = false;  // true once pointer moved enough to be a drag
+  var pdMoved     = false;
   var pdStartX    = 0;
   var pdStartY    = 0;
-  var DRAG_THRESH = 6;      // px before we commit to drag
+  var DRAG_THRESH = 6;
 
   function buildPips() {
     var c = document.getElementById('pips');
@@ -500,10 +529,13 @@ document.addEventListener('DOMContentLoaded', function() {
   function startGame() {
     finished = false; started = false;
     moves = 0; secs = 0; sel = null;
-    pdFrom = null; pdMoved = false;
+    pdFrom = null; pdDisk = null; pdMoved = false;
     clearDropHighlights();
     if (pdFloat) { pdFloat.remove(); pdFloat = null; }
     if (pdGhost) { pdGhost.classList.remove('drag-ghost'); pdGhost = null; }
+    marks = {};
+    tapCounts = {};
+    tapTimes  = {};
     clearInterval(timer); timer = null;
     pegs = [[], [], []];
     for (var i = diff; i >= 1; i--) pegs[0].push(i);
@@ -635,26 +667,45 @@ document.addEventListener('DOMContentLoaded', function() {
         card.style.width    = cs + 'px';
         card.style.height   = cs + 'px';
         card.style.fontSize = fs + 'px';
-        card.textContent    = d;
+
+        // aplicar marca visual
+        var mk = marks[d];
+        if (mk === 'dim') {
+          card.classList.add('mark-dim');
+          card.textContent = d;
+        } else if (mk === 'arrow') {
+          card.classList.add('mark-arrow');
+          var aL  = document.createElement('span'); aL.className  = 'arr'; aL.textContent = '\u25B2';
+          var num = document.createElement('span'); num.className = 'arr-num'; num.textContent = d;
+          var aR  = document.createElement('span'); aR.className  = 'arr'; aR.textContent = '\u25B2';
+          card.appendChild(aL); card.appendChild(num); card.appendChild(aR);
+          card.style.fontSize = Math.round(fs * 0.7) + 'px';
+        } else {
+          card.textContent = d;
+        }
 
         if (isTop && sel === p)            card.classList.add('selected');
         if (p === animPeg && actualIdx === pegs[p].length - 1) card.classList.add('placing');
 
-        if (isTop && !finished) {
-          (function(fromPeg, cardEl) {
+        if (!finished) {
+          (function(fromPeg, diskVal, cardEl) {
             cardEl.addEventListener('pointerdown', function(e) {
               if (e.button !== undefined && e.button !== 0) return;
-              pdFrom   = fromPeg;
-              pdMoved  = false;
-              pdStartX = e.clientX;
-              pdStartY = e.clientY;
-              var rect = cardEl.getBoundingClientRect();
-              pdOffX   = e.clientX - rect.left;
-              pdOffY   = e.clientY - rect.top;
-              pdGhost  = cardEl;
               e.preventDefault();
+              pdDisk = diskVal;
+
+              if (isTop) {
+                pdFrom   = fromPeg;
+                pdMoved  = false;
+                pdStartX = e.clientX;
+                pdStartY = e.clientY;
+                var rect = cardEl.getBoundingClientRect();
+                pdOffX   = e.clientX - rect.left;
+                pdOffY   = e.clientY - rect.top;
+                pdGhost  = cardEl;
+              }
             });
-          })(p, card);
+          })(p, d, card);
         }
         area.appendChild(card);
       }
@@ -825,13 +876,16 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   document.addEventListener('pointerup', function(e) {
-    if (pdFrom === null || finished) return;
+    if (pdFrom === null && pdDisk === null) return;
+    if (finished) { pdFrom = null; pdDisk = null; return; }
 
     clearDropHighlights();
 
     if (!pdMoved) {
-      // it was a tap/click — let handleClick deal with it
-      pdFrom = null; pdGhost = null;
+      // fue un toque simple: contar para marcas
+      if (pdDisk !== null) registerTap(pdDisk);
+      // dejar que handleClick gestione el movimiento
+      pdFrom = null; pdDisk = null; pdGhost = null;
       return;
     }
 
@@ -871,6 +925,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     pdFrom  = null;
+    pdDisk  = null;
     pdMoved = false;
   });
 
@@ -879,8 +934,35 @@ document.addEventListener('DOMContentLoaded', function() {
     if (pdGhost) { pdGhost.classList.remove('drag-ghost'); pdGhost = null; }
     if (pdFloat) { pdFloat.remove(); pdFloat = null; }
     pdFrom  = null;
+    pdDisk  = null;
     pdMoved = false;
   });
+
+  // CONTADOR DE TOQUES
+
+  function registerTap(disk) {
+    var now = Date.now();
+    if ((now - (tapTimes[disk] || 0)) > 1000) {
+      tapCounts[disk] = 0;
+    }
+    tapTimes[disk]  = now;
+    tapCounts[disk] = (tapCounts[disk] || 0) + 1;
+    var cnt = tapCounts[disk];
+    var mk  = marks[disk];
+
+    if (mk) {
+      // ya marcada: 5 toques seguidos -> volver a normal
+      if (cnt >= 5) {
+        marks[disk]     = null;
+        tapCounts[disk] = 0;
+        render();
+      }
+    } else {
+      // sin marca: 5 -> dim, 10 -> arrow
+      if (cnt === 5)       { marks[disk] = 'dim';   render(); }
+      else if (cnt >= 10)  { marks[disk] = 'arrow'; tapCounts[disk] = 0; render(); }
+    }
+  }
 
   window.addEventListener('resize', function() {
     if (!document.getElementById('game-screen').classList.contains('hidden')) {
