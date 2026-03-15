@@ -249,6 +249,14 @@
       font-size: 8px; letter-spacing: .32em;
       text-transform: uppercase; color: var(--muted);
       padding: 7px 0 3px;
+      cursor: pointer;
+    }
+    .peg-lbl.marked {
+      color: var(--gold);
+      text-shadow: 0 0 8px var(--gold);
+    }
+    .peg-lbl.marked::after {
+      content: ' \25B2';
     }
 
     .card {
@@ -484,6 +492,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // contadores de toques por disco
   var tapCounts = {};
   var tapTimes  = {};
+  var lblCounts = [0, 0, 0];
+  var lblTimes  = [0, 0, 0];
 
   // pointer drag state
   var pdFrom      = null;
@@ -535,6 +545,11 @@ document.addEventListener('DOMContentLoaded', function() {
     marks = {};
     tapCounts = {};
     tapTimes  = {};
+    lblCounts = [0, 0, 0];
+    lblTimes  = [0, 0, 0];
+    document.querySelectorAll('.peg-lbl').forEach(function(l) {
+      l.classList.remove('marked');
+    });
     clearInterval(timer); timer = null;
     pegs = [[], [], []];
     for (var i = diff; i >= 1; i--) pegs[0].push(i);
@@ -630,8 +645,22 @@ document.addEventListener('DOMContentLoaded', function() {
         base.className = 'peg-base';
 
         var label = document.createElement('div');
-        label.className  = 'peg-lbl';
+        label.className   = 'peg-lbl';
         label.textContent = labels[pegIndex];
+        (function(idx) {
+          label.addEventListener('pointerdown', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var now = Date.now();
+            if ((now - lblTimes[idx]) > 1000) lblCounts[idx] = 0;
+            lblTimes[idx] = now;
+            lblCounts[idx]++;
+            if (lblCounts[idx] >= 5) {
+              lblCounts[idx] = 0;
+              label.classList.toggle('marked');
+            }
+          });
+        })(pegIndex);
 
         col.appendChild(area);
         col.appendChild(base);
