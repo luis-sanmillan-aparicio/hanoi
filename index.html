@@ -336,53 +336,10 @@
     .peg-col.drop-ok  .cards-area { border-color: var(--gold);  background: var(--gold-dim); }
     .peg-col.drop-bad .cards-area { border-color: var(--danger); background: rgba(192,57,43,.1); }
 
-    .card.mark-dim {
-      opacity: .18;
-      filter: grayscale(1);
-      border-color: #333 !important;
-      color: #333 !important;
-      text-shadow: none !important;
-      transition: opacity .4s, filter .4s;
-    }
-    .card.mark-dim::before { display: none; }
-    .card.mark-dim.mark-arrow {
-      opacity: 1;
-      filter: none;
-    }
-
-    .card.mark-arrow {
-      border-color: var(--gold) !important;
-      box-shadow: 0 0 18px rgba(212,168,67,.35) !important;
-    }
-    .card.mark-arrow::before { background: var(--gold) !important; opacity: .06; }
-
-    .card .arrow-icon {
-      color: var(--gold);
-      text-shadow: 0 0 10px var(--gold);
-      opacity: 1;
-      flex-shrink: 0;
-    }
-    .card .arrow-num {
-      color: #333;
-      text-shadow: none;
-      opacity: .35;
-      flex-shrink: 0;
-    }
-
-    /* anillo de progreso de pulsación larga */
-    .card .lp-ring {
-      position: absolute; inset: -4px;
-      border-radius: 9px;
-      border: 2px solid transparent;
-      pointer-events: none;
-    }
-    @keyframes lp-grow {
-      from { border-color: transparent; clip-path: inset(0 100% 0 0); }
-      to   { border-color: var(--gold); clip-path: inset(0 0% 0 0); }
-    }
-    .card .lp-ring.active {
-      border-color: var(--gold);
-      animation: lp-grow var(--lp-dur, 5s) linear forwards;
+    @keyframes snap-back {
+      0%   { transform: rotate(4deg) scale(1.08); }
+      60%  { transform: rotate(-2deg) scale(1.03); }
+      100% { transform: rotate(0deg) scale(1); }
     }
 
     #win {
@@ -501,13 +458,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var started  = false;
   var finished = false;
 
-  // marcas visuales: clave = "peg-diskValue", valor = 'dim' | 'arrow' | null
-  var marks = {};
-
-  // pulsación larga
-  var lpTimer  = null;   // setTimeout activo
-  var lpTarget = null;   // { peg, disk } del candidato
-
   // pointer drag state
   var pdFrom      = null;   // peg index being dragged from
   var pdFloat     = null;   // the floating card element
@@ -554,8 +504,6 @@ document.addEventListener('DOMContentLoaded', function() {
     clearDropHighlights();
     if (pdFloat) { pdFloat.remove(); pdFloat = null; }
     if (pdGhost) { pdGhost.classList.remove('drag-ghost'); pdGhost = null; }
-    marks = {};
-    cancelLp();
     clearInterval(timer); timer = null;
     pegs = [[], [], []];
     for (var i = diff; i >= 1; i--) pegs[0].push(i);
@@ -687,63 +635,26 @@ document.addEventListener('DOMContentLoaded', function() {
         card.style.width    = cs + 'px';
         card.style.height   = cs + 'px';
         card.style.fontSize = fs + 'px';
-
-        // aplicar marca visual
-        var mk = marks[p + '-' + d];
-        if (mk === 'dim') {
-          card.classList.add('mark-dim');
-          card.textContent = d;
-        } else if (mk === 'arrow') {
-          card.classList.add('mark-dim', 'mark-arrow');
-          // flecha izq
-          var aL = document.createElement('span');
-          aL.className = 'arrow-icon';
-          aL.textContent = '\u25B2';
-          // numero apagado
-          var num = document.createElement('span');
-          num.className = 'arrow-num';
-          num.textContent = d;
-          // flecha der
-          var aR = document.createElement('span');
-          aR.className = 'arrow-icon';
-          aR.textContent = '\u25B2';
-          card.appendChild(aL);
-          card.appendChild(num);
-          card.appendChild(aR);
-          card.style.fontSize = Math.round(fs * 0.72) + 'px';
-        } else {
-          card.textContent = d;
-        }
-
-        // anillo de pulsación larga
-        var ring = document.createElement('div');
-        ring.className = 'lp-ring';
-        card.appendChild(ring);
+        card.textContent    = d;
 
         if (isTop && sel === p)            card.classList.add('selected');
         if (p === animPeg && actualIdx === pegs[p].length - 1) card.classList.add('placing');
 
-        if (!finished) {
-          (function(fromPeg, diskVal, cardEl) {
+        if (isTop && !finished) {
+          (function(fromPeg, cardEl) {
             cardEl.addEventListener('pointerdown', function(e) {
               if (e.button !== undefined && e.button !== 0) return;
+              pdFrom   = fromPeg;
+              pdMoved  = false;
+              pdStartX = e.clientX;
+              pdStartY = e.clientY;
+              var rect = cardEl.getBoundingClientRect();
+              pdOffX   = e.clientX - rect.left;
+              pdOffY   = e.clientY - rect.top;
+              pdGhost  = cardEl;
               e.preventDefault();
-
-              if (isTop) {
-                pdFrom   = fromPeg;
-                pdMoved  = false;
-                pdStartX = e.clientX;
-                pdStartY = e.clientY;
-                var rect = cardEl.getBoundingClientRect();
-                pdOffX   = e.clientX - rect.left;
-                pdOffY   = e.clientY - rect.top;
-                pdGhost  = cardEl;
-              }
-
-              // pulsacion larga disponible para cualquier ficha
-              startLp(fromPeg, diskVal, cardEl);
             });
-          })(p, d, card);
+          })(p, card);
         }
         area.appendChild(card);
       }
@@ -895,7 +806,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (Math.abs(dx) < DRAG_THRESH && Math.abs(dy) < DRAG_THRESH) return;
       // commit to drag: cancel click selection, show float
       pdMoved = true;
-      cancelLp();
       sel     = null;
       if (pdGhost) pdGhost.classList.add('drag-ghost');
       pdFloat = createFloatingCard(pdFrom, e.clientX, e.clientY);
@@ -916,7 +826,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.addEventListener('pointerup', function(e) {
     if (pdFrom === null || finished) return;
-    cancelLp();
+
     clearDropHighlights();
 
     if (!pdMoved) {
@@ -965,67 +875,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   document.addEventListener('pointercancel', function() {
-    cancelLp();
     clearDropHighlights();
     if (pdGhost) { pdGhost.classList.remove('drag-ghost'); pdGhost = null; }
     if (pdFloat) { pdFloat.remove(); pdFloat = null; }
     pdFrom  = null;
     pdMoved = false;
   });
-
-  // PULSACION LARGA
-
-  function cancelLp() {
-    if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
-    lpTarget = null;
-    // quitar anillo activo de cualquier carta
-    document.querySelectorAll('.lp-ring.active').forEach(function(r) {
-      r.classList.remove('active');
-    });
-  }
-
-  function startLp(peg, disk, cardEl) {
-    cancelLp();
-    lpTarget = { peg: peg, disk: disk };
-    var mk = marks[peg + '-' + disk];
-    // si ya tiene marca, 5s para quitar; si no, 5s para dim, luego otros 5 para arrow
-    if (mk) {
-      // estado marcado -> 5s para volver a normal
-      triggerRing(cardEl, 5000);
-      lpTimer = setTimeout(function() {
-        if (!lpTarget || lpTarget.peg !== peg || lpTarget.disk !== disk) return;
-        marks[peg + '-' + disk] = null;
-        lpTarget = null;
-        render();
-      }, 5000);
-    } else {
-      // sin marca -> 5s dim, luego si sigue 5s más -> arrow
-      triggerRing(cardEl, 5000);
-      lpTimer = setTimeout(function() {
-        if (!lpTarget || lpTarget.peg !== peg || lpTarget.disk !== disk) return;
-        marks[peg + '-' + disk] = 'dim';
-        render();
-        // segunda fase: otros 5s para arrow
-        var ringEl = document.querySelector('#area-' + peg + ' .card.is-top .lp-ring');
-        if (ringEl) triggerRing(ringEl.closest('.card'), 5000);
-        lpTimer = setTimeout(function() {
-          if (!lpTarget || lpTarget.peg !== peg || lpTarget.disk !== disk) return;
-          marks[peg + '-' + disk] = 'arrow';
-          lpTarget = null;
-          render();
-        }, 5000);
-      }, 5000);
-    }
-  }
-
-  function triggerRing(cardEl, dur) {
-    var ring = cardEl.querySelector('.lp-ring');
-    if (!ring) return;
-    ring.style.setProperty('--lp-dur', (dur / 1000) + 's');
-    ring.classList.remove('active');
-    void ring.offsetWidth; // forzar reflow para reiniciar animacion
-    ring.classList.add('active');
-  }
 
   window.addEventListener('resize', function() {
     if (!document.getElementById('game-screen').classList.contains('hidden')) {
