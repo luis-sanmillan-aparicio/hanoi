@@ -400,7 +400,71 @@
 
     .cf { position: fixed; pointer-events: none; z-index: 99; border-radius: 1px; }
 
-    @media (max-width: 580px) {
+    .cta-small {
+      padding: 10px 32px;
+      background: none;
+      border: 1px solid var(--muted);
+      color: var(--muted);
+      font-family: 'Josefin Mono', monospace;
+      font-size: 11px; letter-spacing: .3em;
+      text-transform: uppercase;
+      cursor: pointer;
+      position: relative; overflow: hidden;
+      transition: color .28s, border-color .28s;
+    }
+    .cta-small::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: var(--muted);
+      transform: scaleX(0); transform-origin: left;
+      transition: transform .28s cubic-bezier(.4,0,.2,1);
+      z-index: -1;
+    }
+    .cta-small:hover { color: var(--bg); border-color: var(--muted); }
+    .cta-small:hover::before { transform: scaleX(1); }
+
+    #solve-modal {
+      position: fixed; inset: 0;
+      background: rgba(7,7,7,.88);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 150;
+      opacity: 0; pointer-events: none;
+      transition: opacity .3s;
+    }
+    #solve-modal.on { opacity: 1; pointer-events: all; }
+
+    #solve-box {
+      background: #0f0f0f;
+      border: 1px solid var(--border);
+      padding: 32px 28px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 20px;
+      max-width: 320px; width: 90%;
+    }
+    .solve-title {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: 13px; color: var(--gold);
+      letter-spacing: .04em; text-align: center;
+    }
+    .solve-hint {
+      font-size: 10px; color: var(--muted);
+      letter-spacing: .1em; text-align: center;
+      line-height: 1.7;
+    }
+    .solve-hint strong { color: var(--gold); }
+    #solve-input {
+      background: #000;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Josefin Mono', monospace;
+      font-size: 28px; font-weight: 600;
+      text-align: center;
+      width: 120px; padding: 10px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #solve-input:focus { border-color: var(--gold); }
+    .solve-btns { display: flex; gap: 12px; align-items: center; }
       .win-stats { gap: 24px; }
       .win-sv { font-size: 28px; }
     }
@@ -424,6 +488,7 @@
     <div class="hint" id="hint">Minimo de movimientos: 7</div>
   </div>
   <button class="cta" id="btn-start">Comenzar</button>
+  <button class="cta-small" id="btn-solve">Resolver</button>
 </div>
 
 <div class="screen hidden" id="game-screen">
@@ -444,8 +509,8 @@
         </div>
       </div>
       <div class="g-actions">
-        <button class="sm-btn" id="btn-restart">Reiniciar</button>
-        <button class="sm-btn" id="btn-menu">Menu</button>
+        <button class="sm-btn" id="btn-restart">Pausar</button>
+        <button class="sm-btn" id="btn-menu">Salir</button>
       </div>
     </div>
     <div class="pegs" id="pegs"></div>
@@ -474,7 +539,17 @@
   </div>
 </div>
 
-<script>
+<div id="solve-modal">
+  <div id="solve-box">
+    <div class="solve-title">Resolver automaticamente</div>
+    <div class="solve-hint">Escribe el tiempo entre movimientos (0-1000 ms)<br>o escribe <strong>t</strong> para avanzar toque a toque</div>
+    <input id="solve-input" type="text" value="400" maxlength="4" autocomplete="off" spellcheck="false">
+    <div class="solve-btns">
+      <button class="cta" id="btn-solve-ok">Aceptar</button>
+      <button class="sm-btn" id="btn-solve-cancel" style="padding:12px 22px;font-size:11px;">Cancelar</button>
+    </div>
+  </div>
+</div>
 document.addEventListener('DOMContentLoaded', function() {
 
   var pegs     = [[], [], []];
@@ -828,13 +903,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('win').classList.remove('on');
   }
 
-  document.getElementById('btn-restart').addEventListener('click', function() { hideWin(); startGame(); });
-  document.getElementById('btn-menu').addEventListener('click', function() {
-    clearInterval(timer); hideWin(); showScreen('welcome');
-  });
   document.getElementById('btn-again').addEventListener('click', function() { hideWin(); startGame(); });
   document.getElementById('btn-wm').addEventListener('click', function() {
-    clearInterval(timer); hideWin(); showScreen('welcome');
+    stopSolver(); clearInterval(timer); hideWin(); showScreen('welcome');
   });
 
   // POINTER DRAG
@@ -985,7 +1056,122 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  window.addEventListener('resize', function() {
+  // SOLVER
+  var solverMode    = false;   // true cuando el solver esta activo
+  var solverPaused  = false;
+  var solverMoves   = [];      // lista de {from, to}
+  var solverIdx     = 0;
+  var solverDelay   = 400;
+  var solverStep    = false;   // true = modo t
+  var solverTimer   = null;
+  var solverResolve = null;    // para el modo t (promesa pendiente)
+
+  function generateMoves(n, from, to, aux, list) {
+    if (n === 0) return;
+    generateMoves(n-1, from, aux, to, list);
+    list.push({ from: from, to: to });
+    generateMoves(n-1, aux, to, from, list);
+  }
+
+  function startSolver(delay, stepMode) {
+    solverMode   = true;
+    solverPaused = false;
+    solverStep   = stepMode;
+    solverDelay  = delay;
+    solverMoves  = [];
+    solverIdx    = 0;
+    finished     = false;
+
+    generateMoves(diff, 0, 2, 1, solverMoves);
+
+    document.getElementById('btn-restart').textContent = 'Pausar';
+    document.getElementById('btn-menu').textContent    = 'Salir';
+
+    // bloquear interaccion del jugador
+    document.getElementById('pegs').style.pointerEvents = 'none';
+
+    runSolver();
+  }
+
+  function runSolver() {
+    if (!solverMode) return;
+    if (solverIdx >= solverMoves.length) {
+      // terminado
+      solverMode = false;
+      document.getElementById('pegs').style.pointerEvents = '';
+      setTimeout(showWin, 300);
+      return;
+    }
+    if (solverPaused) return;
+
+    var mv = solverMoves[solverIdx];
+    solverIdx++;
+    doMove(mv.from, mv.to);
+
+    if (solverStep) {
+      // modo t: espera toque/clic en cualquier sitio
+      document.getElementById('pegs').style.pointerEvents = '';
+      document.addEventListener('pointerup', stepListener);
+    } else {
+      solverTimer = setTimeout(runSolver, solverDelay);
+    }
+  }
+
+  function stepListener() {
+    document.removeEventListener('pointerup', stepListener);
+    document.getElementById('pegs').style.pointerEvents = 'none';
+    runSolver();
+  }
+
+  function stopSolver() {
+    solverMode = false;
+    solverPaused = false;
+    if (solverTimer) { clearTimeout(solverTimer); solverTimer = null; }
+    document.removeEventListener('pointerup', stepListener);
+    document.getElementById('pegs').style.pointerEvents = '';
+    document.getElementById('btn-restart').textContent = 'Pausar';
+  }
+
+  // modal
+  document.getElementById('btn-solve').addEventListener('click', function() {
+    document.getElementById('solve-modal').classList.add('on');
+    document.getElementById('solve-input').focus();
+  });
+  document.getElementById('btn-solve-cancel').addEventListener('click', function() {
+    document.getElementById('solve-modal').classList.remove('on');
+  });
+  document.getElementById('btn-solve-ok').addEventListener('click', function() {
+    var val = document.getElementById('solve-input').value.trim().toLowerCase();
+    document.getElementById('solve-modal').classList.remove('on');
+    var stepMode = (val === 't');
+    var delay    = stepMode ? 0 : Math.max(0, Math.min(1000, parseInt(val) || 400));
+    startGame();
+    setTimeout(function() { startSolver(delay, stepMode); }, 100);
+  });
+
+  // Pausar / Continuar
+  document.getElementById('btn-restart').addEventListener('click', function() {
+    if (!solverMode) return;
+    if (solverPaused) {
+      solverPaused = false;
+      document.getElementById('btn-restart').textContent = 'Pausar';
+      if (!solverStep) runSolver();
+    } else {
+      solverPaused = true;
+      if (solverTimer) { clearTimeout(solverTimer); solverTimer = null; }
+      document.removeEventListener('pointerup', stepListener);
+      document.getElementById('btn-restart').textContent = 'Continuar';
+    }
+  });
+
+  document.getElementById('btn-menu').addEventListener('click', function() {
+    stopSolver();
+    clearInterval(timer);
+    hideWin();
+    showScreen('welcome');
+    document.getElementById('btn-restart').textContent = 'Pausar';
+    document.getElementById('btn-menu').textContent    = 'Salir';
+  });
     if (!document.getElementById('game-screen').classList.contains('hidden')) {
       buildLayout();
       render();
