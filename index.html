@@ -426,12 +426,11 @@
     #solve-modal {
       position: fixed; inset: 0;
       background: rgba(7,7,7,.88);
-      display: flex; align-items: center; justify-content: center;
+      display: none;
+      align-items: center; justify-content: center;
       z-index: 150;
-      opacity: 0; pointer-events: none;
-      transition: opacity .3s;
     }
-    #solve-modal.on { opacity: 1; pointer-events: all; }
+    #solve-modal.on { display: flex; }
 
     #solve-box {
       background: #0f0f0f;
@@ -550,6 +549,8 @@
     </div>
   </div>
 </div>
+
+<script>
 document.addEventListener('DOMContentLoaded', function() {
 
   var pegs     = [[], [], []];
