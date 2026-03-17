@@ -541,7 +541,11 @@
 <div id="solve-modal">
   <div id="solve-box">
     <div class="solve-title">Resolver automaticamente</div>
-    <div class="solve-hint">Escribe el tiempo entre movimientos (0-1000 ms)<br>o escribe <strong>t</strong> para avanzar toque a toque</div>
+    <div class="solve-hint">
+      <strong>0</strong> — maxima velocidad (un frame por movimiento)<br>
+      <strong>50-1000</strong> — milisegundos entre movimientos<br>
+      <strong>t</strong> — avanza toque a toque
+    </div>
     <input id="solve-input" type="text" value="400" maxlength="4" autocomplete="off" spellcheck="false">
     <div class="solve-btns">
       <button class="cta" id="btn-solve-ok">Aceptar</button>
@@ -1146,7 +1150,11 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('solve-modal').classList.remove('on');
     document.getElementById('solve-input').blur();
     var stepMode = (val === 't');
-    var delay    = stepMode ? 0 : Math.max(0, Math.min(1000, parseInt(val) || 400));
+    var parsed   = parseInt(val);
+    var delay;
+    if (stepMode)       delay = 0;
+    else if (parsed === 0) delay = 16;
+    else                delay = Math.max(50, Math.min(1000, parsed || 400));
     startGame();
     setTimeout(function() {
       buildLayout();
