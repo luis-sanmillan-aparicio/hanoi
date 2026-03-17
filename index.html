@@ -1173,6 +1173,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('btn-restart').textContent = 'Pausar';
     document.getElementById('btn-menu').textContent    = 'Salir';
   });
+
+  window.addEventListener('resize', function() {
     if (!document.getElementById('game-screen').classList.contains('hidden')) {
       buildLayout();
       render();
